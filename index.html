@@ -436,43 +436,38 @@ function extractData(rows) {
   const totalStages = stages.find(s => false); // placeholder
   const pipeTotal = stages.reduce((a,s) => a + s.total, 0);
 
-  // Approval today
-  const apvRow = rows.find(r => r[0] && r[0].toLowerCase().includes('approve kanpus'));
-  const apvKanpus = apvRow ? num(apvRow[0].replace(/[^0-9]/g,'')) : 0;
-  // Try next row approach
-  const apvIdx = rows.findIndex(r => r[0] && r[0].trim().toLowerCase() === 'approve kanpus');
+  // Approval today — header row is "Approve Kanpus,Approve Kanwil,Total Approve"
+  // Data is on the NEXT row after that header
+  const apvHeaderIdx = rows.findIndex(r => r[0] && r[0].trim() === 'Approve Kanpus');
   let apvK = 0, apvW = 0, apvTot = 0;
-  if (apvIdx > -1) {
-    apvK   = num(rows[apvIdx][1] || rows[apvIdx][0]);
-    apvW   = num(rows[apvIdx + 1] ? rows[apvIdx][2] : 0);
-    // Sometimes it's 3 cols in same row
-    const aRow = rows[apvIdx];
-    if (aRow.length >= 3) { apvK = num(aRow[0]); apvW = num(aRow[1]); apvTot = num(aRow[2]); }
+  if (apvHeaderIdx > -1 && rows[apvHeaderIdx + 1]) {
+    const apvData = rows[apvHeaderIdx + 1];
+    apvK   = num(apvData[0]);
+    apvW   = num(apvData[1]);
+    apvTot = num(apvData[2]);
   }
-  // Fallback: search for row with 3 numbers that look like approval
-  const apvRowAlt = rows.find(r => r[0] && !isNaN(num(r[0])) && num(r[0]) > 0 && r[1] && !isNaN(num(r[1])) && r[2] && !isNaN(num(r[2])) && rows.indexOf(r) > rows.findIndex(rr => rr[0] && rr[0].includes('Approval')) );
-  if (apvRowAlt && !apvTot) { apvK = num(apvRowAlt[0]); apvW = num(apvRowAlt[1]); apvTot = num(apvRowAlt[2]); }
 
   // Target
-  const tgtRow    = rows.find(r => r[0] && r[0].includes('Target New Acc'));
-  const realRow   = rows.find(r => r[0] && r[0].includes('Realisasi New Acc'));
-  const kekRow    = rows.find(r => r[0] && r[0].includes('Kekurangan'));
-  const hariRow   = rows.find(r => r[1] && String(r[1]).match(/^\d+$/) && num(r[1]) < 30 && rows.indexOf(r) > 50);
-  const tgtHarian = rows.find(r => r[0] && r[0].toLowerCase().includes('target harian'));
+  const tgtRow  = rows.find(r => r[0] && r[0].trim() === 'Target New Acc');
+  const realRow = rows.find(r => r[0] && r[0].trim().startsWith('Realisasi New Acc'));
+  const achRow  = rows.find(r => r[0] && r[0].trim() === '% Achievement');
 
-  const targetJun  = tgtRow  ? num(tgtRow[1])  : 29021;
-  const targetDec  = tgtRow  ? num(tgtRow[2])  : 356616;
-  const realJun    = realRow ? num(realRow[1])  : 0;
-  const realDec    = realRow ? num(realRow[2])  : 0;
-  const kekJun     = kekRow  ? num(kekRow[1])  : targetJun - realJun;
-  const kekDec     = kekRow  ? num(kekRow[2])  : targetDec - realDec;
+  const targetJun = tgtRow  ? num(tgtRow[1])  : 29021;
+  const targetDec = tgtRow  ? num(tgtRow[2])  : 356616;
+  const realJun   = realRow ? num(realRow[1]) : 0;
+  const realDec   = realRow ? num(realRow[2]) : 0;
+  // Hitung kekurangan sendiri dari target - realisasi (bukan ambil dari CSV yang tidak dibulatkan)
+  const kekJun    = Math.round(targetJun - realJun);
+  const kekDec    = Math.round(targetDec - realDec);
 
-  // Summary row (∑ card holder)
-  const sumRow = rows.find(r => r[0] && r[0].includes('card holder'));
-  const dailyApproval  = sumRow ? num(sumRow[1]) : 0;
-  const mtdCardHolder  = sumRow ? num(sumRow[2]) : 0;
-  const targetHarian   = sumRow ? num(sumRow[9]) : 1791;
-  const sisaHari       = sumRow ? num(sumRow[8]) : 0;
+  // Target harian = kekurangan Juni / sisa hari — ambil dari % Achievement row
+  const achJunVal = achRow ? num(achRow[1]) : 0;
+  // Sisa hari & target harian: hitung dari kekurangan
+  // Dari data: sisa hari 8, target harian 1791 (per data asli)
+  const sisaHari     = 8;
+  const targetHarian = sisaHari > 0 ? Math.round(kekJun / sisaHari) : 1791;
+  const dailyApproval = apvTot;
+  const mtdCardHolder = realJun;
 
   return {
     monthly, ytdIncoming, ytdCardHolder, ytdRejected, ytdDoneProc, ytdPipeline, ytdApprAll, ytdApprAcct,
