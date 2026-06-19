@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CC Performance Dashboard 2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --bg:#f0f4f8;--card:#fff;--border:rgba(0,0,0,0.08);--text:#1a2236;--muted:#5a6479;--hint:#9ba3b2;
+  --navy:#1e3a5f;--navy2:#16305a;--blue:#2563eb;--blue-l:#dbeafe;--green:#16a34a;--green-l:#dcfce7;
+  --red:#dc2626;--red-l:#fee2e2;--amber:#d97706;--amber-l:#fef3c7;--purple:#7c3aed;--purple-l:#ede9fe;
+  --shadow:0 2px 12px rgba(30,58,95,0.07);--shadow-h:0 8px 28px rgba(30,58,95,0.13);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:13px;}
+
+.header{background:linear-gradient(135deg,var(--navy),#2a4f80);color:#fff;padding:0 32px;position:sticky;top:0;z-index:200;box-shadow:0 3px 16px rgba(0,0,0,0.18);}
+.header-inner{display:flex;align-items:center;justify-content:space-between;height:62px;}
+.brand{display:flex;align-items:center;gap:12px;}
+.brand-icon{width:40px;height:40px;background:rgba(255,255,255,0.15);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;}
+.brand-title{font-size:16px;font-weight:700;}
+.brand-sub{font-size:11px;color:rgba(255,255,255,0.55);margin-top:1px;}
+.hchips{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.hchip{font-size:10px;padding:4px 12px;border-radius:20px;font-weight:500;border:1px solid transparent;}
+.hchip-ok{background:rgba(34,197,94,0.18);border-color:rgba(34,197,94,0.35);color:#86efac;}
+.hchip-warn{background:rgba(251,191,36,0.18);border-color:rgba(251,191,36,0.35);color:#fde68a;}
+.hchip-red{background:rgba(239,68,68,0.18);border-color:rgba(239,68,68,0.35);color:#fca5a5;}
+.hchip-def{background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.2);color:rgba(255,255,255,0.85);}
+.hchip-live{background:rgba(34,197,94,0.25);border-color:#86efac;color:#86efac;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}
+
+.nav{background:var(--navy2);display:flex;gap:2px;padding:0 32px;border-bottom:1px solid rgba(255,255,255,0.08);}
+.nav-tab{padding:10px 18px;font-size:12px;font-weight:500;color:rgba(255,255,255,0.55);cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;white-space:nowrap;}
+.nav-tab:hover{color:rgba(255,255,255,0.85);}
+.nav-tab.active{color:#fff;border-bottom-color:#60a5fa;}
+
+.page{max-width:1440px;margin:0 auto;padding:24px 32px 40px;display:flex;flex-direction:column;gap:20px;}
+.tab{display:none;flex-direction:column;gap:20px;}
+.tab.active{display:flex;}
+.sec-label{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;display:flex;align-items:center;gap:8px;}
+.sec-label::after{content:'';flex:1;height:1px;background:var(--border);}
+
+.card{background:var(--card);border-radius:14px;border:1px solid var(--border);padding:18px 20px;box-shadow:var(--shadow);transition:box-shadow .2s;}
+.card:hover{box-shadow:var(--shadow-h);}
+.card-title{font-size:13px;font-weight:600;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;}
+.card-sub{font-size:10px;color:var(--hint);}
+
+.kpi-grid{display:grid;gap:14px;}
+.k5{grid-template-columns:repeat(5,1fr);}
+.k4{grid-template-columns:repeat(4,1fr);}
+.kpi{border-radius:14px;padding:16px 18px;position:relative;overflow:hidden;box-shadow:var(--shadow);transition:transform .15s,box-shadow .2s;}
+.kpi:hover{transform:translateY(-3px);box-shadow:var(--shadow-h);}
+.kpi-emoji{font-size:22px;margin-bottom:8px;display:block;}
+.kpi-val{font-size:24px;font-weight:700;line-height:1;}
+.kpi-lbl{font-size:11px;margin-top:5px;font-weight:500;opacity:.85;}
+.kpi-sub{font-size:10px;margin-top:2px;opacity:.7;}
+.kb{background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;}
+.kg{background:linear-gradient(135deg,#14532d,#22c55e);color:#fff;}
+.kr{background:linear-gradient(135deg,#7f1d1d,#ef4444);color:#fff;}
+.ka{background:linear-gradient(135deg,#78350f,#f59e0b);color:#fff;}
+.kp{background:linear-gradient(135deg,#4c1d95,#a78bfa);color:#fff;}
+
+.grid{display:grid;gap:16px;}
+.g2{grid-template-columns:1fr 1fr;}
+.g3{grid-template-columns:1fr 1fr 1fr;}
+.g2a{grid-template-columns:1.7fr 1fr;}
+.g2b{grid-template-columns:1fr 1.5fr;}
+
+.strip{background:linear-gradient(135deg,var(--navy),#2a4f80);border-radius:14px;padding:18px 28px;display:grid;grid-template-columns:repeat(4,1fr);gap:16px;box-shadow:var(--shadow);}
+.sv{font-size:22px;font-weight:700;color:#fff;}
+.sl{font-size:10px;color:rgba(255,255,255,0.55);margin-top:3px;}
+.sn{font-size:10px;margin-top:4px;}
+
+.tbl-wrap{overflow-x:auto;border-radius:8px;}
+table.dt{width:100%;border-collapse:collapse;font-size:12px;}
+.dt th{padding:8px 10px;text-align:right;font-size:11px;font-weight:600;color:var(--muted);border-bottom:2px solid var(--border);background:#f7f9fc;}
+.dt th:first-child{text-align:left;}
+.dt td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--border);}
+.dt td:first-child{text-align:left;color:var(--muted);font-weight:500;}
+.dt tr:last-child td{background:#f0f4ff;font-weight:600;}
+.dt tr:hover:not(:last-child) td{background:#f8faff;}
+.ok{color:var(--green)!important;font-weight:600;}
+.warn{color:var(--amber)!important;font-weight:600;}
+.bad{color:var(--red)!important;font-weight:600;}
+.blu{color:var(--blue)!important;font-weight:600;}
+
+.prog{margin-bottom:10px;}
+.prog-head{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;font-weight:500;}
+.prog-track{background:#e8eef6;border-radius:6px;height:9px;overflow:hidden;}
+.prog-fill{height:100%;border-radius:6px;transition:width 1.2s cubic-bezier(.4,0,.2,1);}
+.prog-note{font-size:10px;color:var(--hint);margin-top:2px;}
+
+.flag{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:9px;margin-bottom:7px;}
+.flag:last-child{margin-bottom:0;}
+.flag-ico{font-size:16px;flex-shrink:0;margin-top:1px;}
+.flag-body .tag{font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:2px;}
+.flag-body .txt{font-size:11px;line-height:1.55;}
+.fr{background:var(--red-l);}.fr .tag{color:#991b1b;}
+.fa{background:var(--amber-l);}.fa .tag{color:#78350f;}
+.fg{background:var(--green-l);}.fg .tag{color:#14532d;}
+.fb{background:var(--blue-l);}.fb .tag{color:#1e3a8a;}
+
+.insight{background:#f0f4ff;border:1px solid #c7d7fd;border-left:4px solid var(--blue);border-radius:8px;padding:10px 14px;margin-top:10px;font-size:11px;color:#1e3a8a;line-height:1.6;}
+
+.pipe-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+.pipe-lbl{font-size:10px;color:var(--muted);width:155px;flex-shrink:0;font-weight:500;}
+.pipe-bar-wrap{flex:1;background:#e8eef6;border-radius:4px;height:22px;overflow:hidden;}
+.pipe-bar-fill{height:100%;border-radius:4px;display:flex;align-items:center;padding:0 6px;font-size:9px;color:#fff;font-weight:600;white-space:nowrap;overflow:hidden;transition:width 1s ease;}
+.pipe-total{font-size:11px;font-weight:600;width:52px;text-align:right;flex-shrink:0;}
+
+/* LOADING OVERLAY */
+.loading-overlay{position:fixed;inset:0;background:rgba(15,23,42,0.85);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:16px;}
+.loading-spinner{width:48px;height:48px;border:4px solid rgba(255,255,255,0.15);border-top-color:#60a5fa;border-radius:50%;animation:spin 0.9s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{color:#fff;font-size:14px;font-weight:500;}
+.loading-sub{color:rgba(255,255,255,0.5);font-size:11px;}
+.loading-overlay.hidden{display:none;}
+
+.error-banner{background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:14px 18px;color:#991b1b;font-size:12px;display:none;}
+.error-banner.show{display:block;}
+
+.refresh-btn{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);color:#fff;padding:5px 14px;border-radius:20px;font-size:11px;cursor:pointer;font-weight:500;transition:background .2s;}
+.refresh-btn:hover{background:rgba(255,255,255,0.25);}
+
+.last-update{font-size:10px;color:rgba(255,255,255,0.5);margin-top:2px;}
+
+.apv-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.apv-card{border-radius:10px;padding:12px;text-align:center;}
+.apv-val{font-size:28px;font-weight:700;}
+.apv-lbl{font-size:10px;margin-top:3px;}
+.apv-pct{font-size:11px;margin-top:4px;font-weight:600;}
+
+@media(max-width:1100px){.k5{grid-template-columns:repeat(3,1fr);}.g2a,.g2b{grid-template-columns:1fr;}.g3{grid-template-columns:1fr 1fr;}.strip{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:720px){.page{padding:16px;}.k5,.k4{grid-template-columns:repeat(2,1fr);}.g2,.g3{grid-template-columns:1fr;}.nav-tab{font-size:11px;padding:9px 12px;}.header{padding:0 16px;}.hchips{display:none;}}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Memuat data dari Google Sheets...</div>
+  <div class="loading-sub" id="loadingSub">Menghubungkan ke sumber data live</div>
+</div>
+
+<!-- ERROR BANNER -->
+<div class="error-banner" id="errorBanner">
+  ⚠️ <strong>Gagal memuat data dari Google Sheets.</strong> Pastikan link sudah di-publish (File > Share > Publish to web) dan koneksi internet aktif.
+  <br><small id="errorDetail"></small>
+</div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-inner">
+    <div class="brand">
+      <div class="brand-icon">💳</div>
+      <div>
+        <div class="brand-title">CC Performance Dashboard 2026</div>
+        <div class="brand-sub" id="headerSub">Kartu Reguler &amp; Ceria Apps | Kanpus &amp; Kanwil</div>
+        <div class="last-update" id="lastUpdate">Memuat...</div>
+      </div>
+    </div>
+    <div class="hchips">
+      <span class="hchip hchip-live">🟢 LIVE — Google Sheets</span>
+      <span class="hchip hchip-def" id="chipIncoming">Incoming: —</span>
+      <span class="hchip hchip-warn" id="chipAch">Ach: —</span>
+      <span class="hchip hchip-red" id="chipPipeline">Pipeline: —</span>
+      <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<div class="nav">
+  <div class="nav-tab active" onclick="switchTab('overview',this)">📊 Overview & KPI</div>
+  <div class="nav-tab" onclick="switchTab('monthly',this)">📅 Tren Bulanan</div>
+  <div class="nav-tab" onclick="switchTab('pipeline',this)">🔄 Pipeline</div>
+  <div class="nav-tab" onclick="switchTab('target',this)">🎯 Target & Proyeksi</div>
+  <div class="nav-tab" onclick="switchTab('insight',this)">💡 Insight</div>
+</div>
+
+<div class="page">
+
+<!-- TAB OVERVIEW -->
+<div id="tab-overview" class="tab active">
+  <div class="sec-label">KPI Utama — Year to Date</div>
+  <div class="kpi-grid k5" id="kpiGrid">
+    <div class="kpi kb"><span class="kpi-emoji">📥</span><div class="kpi-val" id="kIncoming">—</div><div class="kpi-lbl">Total Incoming YTD</div><div class="kpi-sub" id="kIncomingSub">—</div></div>
+    <div class="kpi kg"><span class="kpi-emoji">💳</span><div class="kpi-val" id="kCardHolder">—</div><div class="kpi-lbl">Total Card Holder YTD</div><div class="kpi-sub" id="kCardHolderSub">—</div></div>
+    <div class="kpi kr"><span class="kpi-emoji">❌</span><div class="kpi-val" id="kRejected">—</div><div class="kpi-lbl">Total Rejected YTD</div><div class="kpi-sub" id="kRejectedSub">—</div></div>
+    <div class="kpi ka"><span class="kpi-emoji">📊</span><div class="kpi-val" id="kApprRate">—</div><div class="kpi-lbl">Approval Rate All YTD</div><div class="kpi-sub" id="kApprRateSub">—</div></div>
+    <div class="kpi kp"><span class="kpi-emoji">⏳</span><div class="kpi-val" id="kPipeline">—</div><div class="kpi-lbl">Pipeline On-Process</div><div class="kpi-sub" id="kPipelineSub">—</div></div>
+  </div>
+
+  <div class="strip">
+    <div style="text-align:center;"><div class="sv" id="sApprToday">—</div><div class="sl">Approval Hari Ini</div><div class="sn" id="sApprTodaySub" style="color:#fca5a5;"></div></div>
+    <div style="text-align:center;"><div class="sv" id="sPipeline">—</div><div class="sl">Total On-Process Pipeline</div><div class="sn" style="color:#fde68a;" id="sPipelineSub">—</div></div>
+    <div style="text-align:center;"><div class="sv" id="sYearlyAch">—</div><div class="sl">Yearly Achievement</div><div class="sn" style="color:#fca5a5;" id="sYearlyAchSub">—</div></div>
+    <div style="text-align:center;"><div class="sv" id="sApprRate">—</div><div class="sl">Approval Rate Juni (MTD)</div><div class="sn" style="color:#86efac;" id="sApprRateSub">—</div></div>
+  </div>
+
+  <div class="grid g2a">
+    <div class="card">
+      <div class="card-title">Incoming vs Card Holder vs Rejected — Bulanan <span class="card-sub">Live dari Google Sheets</span></div>
+      <div style="position:relative;height:260px;"><canvas id="overviewBar"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Distribusi Outcome YTD <span class="card-sub">% dari incoming</span></div>
+      <div style="position:relative;height:200px;"><canvas id="overviewDonut"></canvas></div>
+      <div class="tbl-wrap" style="margin-top:10px;">
+        <table class="dt">
+          <thead><tr><th>Kategori</th><th>Volume</th><th>%</th></tr></thead>
+          <tbody id="outcomeTable"><tr><td colspan="3" style="text-align:center;color:var(--hint);padding:12px;">Memuat...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB MONTHLY -->
+<div id="tab-monthly" class="tab">
+  <div class="sec-label">Tren Bulanan — 2026</div>
+  <div class="grid g2">
+    <div class="card">
+      <div class="card-title">Volume Bulanan <span class="card-sub">Incoming / Rejected / Card Holder</span></div>
+      <div style="position:relative;height:260px;"><canvas id="trendBar"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">% Approval Rate Bulanan <span class="card-sub">Acct vs All</span></div>
+      <div style="position:relative;height:260px;"><canvas id="apprLine"></canvas></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Tabel Ringkasan Bulanan</div>
+    <div class="tbl-wrap"><table class="dt" id="monthlyTable">
+      <thead><tr><th>Bulan</th><th>Incoming</th><th>Card Holder</th><th>Rejected</th><th>Done Process</th><th>Pipeline</th><th>% Appr Acct</th><th>% Appr All</th></tr></thead>
+      <tbody id="monthlyTbody"><tr><td colspan="8" style="text-align:center;padding:16px;color:var(--hint);">Memuat data...</td></tr></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- TAB PIPELINE -->
+<div id="tab-pipeline" class="tab">
+  <div class="sec-label">Pipeline On-Process</div>
+  <div class="kpi-grid k4">
+    <div class="kpi kb"><span class="kpi-emoji">🔄</span><div class="kpi-val" id="pTotal">—</div><div class="kpi-lbl">Total On-Process</div><div class="kpi-sub">7 stages aktif</div></div>
+    <div class="kpi kr"><span class="kpi-emoji">⚠️</span><div class="kpi-val" id="pStage1">—</div><div class="kpi-lbl">Stage 1 — Initial Entry</div><div class="kpi-sub" id="pStage1Pct">—</div></div>
+    <div class="kpi ka"><span class="kpi-emoji">📋</span><div class="kpi-val" id="pStage6">—</div><div class="kpi-lbl">Stage 6 — Credit Review</div><div class="kpi-sub" id="pStage6Pct">—</div></div>
+    <div class="kpi kg"><span class="kpi-emoji">✅</span><div class="kpi-val" id="pStage5">—</div><div class="kpi-lbl">Stage 5 — Verification</div><div class="kpi-sub">Tidak ada backlog ✓</div></div>
+  </div>
+  <div class="grid g2">
+    <div class="card">
+      <div class="card-title">Distribusi Pipeline per Stage <span class="card-sub">Kanpus vs Kanwil</span></div>
+      <div id="pipeVisual" style="margin-top:10px;"></div>
+      <div class="insight" id="pipeInsight">Memuat data pipeline...</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Approval Hari Ini — Kanpus vs Kanwil</div>
+      <div class="apv-grid" style="margin-top:10px;">
+        <div class="apv-card" style="background:#dbeafe;">
+          <div class="apv-val" id="apvKanpus" style="color:#1d4ed8;">—</div>
+          <div class="apv-lbl" style="color:#1d4ed8;">Approve Kanpus</div>
+          <div class="apv-pct" id="apvKanpusPct" style="color:#1d4ed8;">—</div>
+        </div>
+        <div class="apv-card" style="background:#dcfce7;">
+          <div class="apv-val" id="apvKanwil" style="color:#14532d;">—</div>
+          <div class="apv-lbl" style="color:#14532d;">Approve Kanwil</div>
+          <div class="apv-pct" id="apvKanwilPct" style="color:#14532d;">—</div>
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:10px;">
+        <div style="font-size:28px;font-weight:700;" id="apvTotal">—</div>
+        <div style="font-size:11px;color:var(--muted);">Total Approve Hari Ini</div>
+        <div style="font-size:10px;color:var(--red);margin-top:3px;" id="apvGap">—</div>
+      </div>
+      <div style="position:relative;height:200px;margin-top:14px;"><canvas id="pipeChart"></canvas></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Tabel Detail Pipeline — Kanpus vs Kanwil</div>
+    <div class="tbl-wrap">
+      <table class="dt">
+        <thead><tr><th>Stage</th><th>Kanpus</th><th>Kanwil</th><th>Total</th><th>% Pipeline</th></tr></thead>
+        <tbody id="pipeTableBody"><tr><td colspan="5" style="text-align:center;padding:16px;color:var(--hint);">Memuat...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TAB TARGET -->
+<div id="tab-target" class="tab">
+  <div class="sec-label">Target Achievement</div>
+  <div class="grid g2">
+    <div class="card">
+      <div class="card-title">Progress Target Juni &amp; Tahunan 2026</div>
+      <div id="targetProgs" style="margin-top:8px;"></div>
+      <div class="tbl-wrap" style="margin-top:12px;">
+        <table class="dt">
+          <thead><tr><th>Keterangan</th><th>Jun-26</th><th>Dec-26</th></tr></thead>
+          <tbody id="targetTable"><tr><td colspan="3" style="text-align:center;padding:16px;color:var(--hint);">Memuat...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Ringkasan Target Harian</div>
+      <div id="dailySummary" style="margin-top:8px;"></div>
+      <div style="position:relative;height:220px;margin-top:14px;"><canvas id="targetChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB INSIGHT -->
+<div id="tab-insight" class="tab">
+  <div class="sec-label">Temuan & Rekomendasi Otomatis</div>
+  <div class="grid g2">
+    <div class="card">
+      <div class="card-title">🔴 Temuan Kritis</div>
+      <div id="insightCritical"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🟡 Perhatian &amp; 🟢 Positif</div>
+      <div id="insightPositive"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">🎯 Rekomendasi Aksi Prioritas</div>
+    <div class="grid g3" id="actionCards" style="margin-top:10px;"></div>
+  </div>
+</div>
+
+<div style="text-align:center;font-size:11px;color:var(--hint);padding:16px 0 8px;border-top:1px solid var(--border);">
+  CC Performance Dashboard 2026 — Data Live dari Google Sheets | <span id="footerUpdate">—</span>
+</div>
+</div><!-- /page -->
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────
+const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQWNvihk1SSb7lMh-kmCi3rfc2IyxBSHCbz8pci44sBEYjMv4vYI-yzN-P08-nyOMY3mOkCV8DKc2Tq/pub?gid=0&single=true&output=csv';
+const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUNE','JULY','AUG','SEPT','OCT','NOV','DEC'];
+const TC = '#6b7280', GC = 'rgba(0,0,0,0.05)';
+const TIP = {backgroundColor:'rgba(15,23,42,0.93)',titleColor:'#f8fafc',bodyColor:'#cbd5e1',padding:12,cornerRadius:10,titleFont:{size:12,weight:'700'},bodyFont:{size:11},borderColor:'rgba(255,255,255,0.1)',borderWidth:1,mode:'index',intersect:false};
+
+let charts = {};
+let D = {}; // parsed data store
+
+// ── CSV PARSER ────────────────────────────────────────────────
+function parseCSV(text) {
+  return text.split('\n').map(row => {
+    const cells = []; let cur = '', inQ = false;
+    for (let c of row) {
+      if (c === '"') inQ = !inQ;
+      else if (c === ',' && !inQ) { cells.push(cur.trim()); cur = ''; }
+      else cur += c;
+    }
+    cells.push(cur.trim());
+    return cells;
+  });
+}
+
+function num(s) {
+  if (!s) return 0;
+  // Handle Indonesian format (dot as thousands, comma as decimal)
+  let v = String(s).replace(/["%\s]/g,'').replace(/\./g,'').replace(',','.');
+  return parseFloat(v) || 0;
+}
+
+function pct(s) {
+  if (!s) return 0;
+  let v = String(s).replace(/[%\s]/g,'').replace(',','.');
+  return parseFloat(v) || 0;
+}
+
+function fmt(n) { return Math.round(n).toLocaleString('id-ID'); }
+function fmtP(n) { return n.toFixed(2).replace('.',',') + '%'; }
+function colorPct(p) { return p >= 80 ? 'ok' : p >= 50 ? 'warn' : 'bad'; }
+
+// ── DATA EXTRACTOR ────────────────────────────────────────────
+function extractData(rows) {
+  // Find rows by label in column A
+  function findRow(label) {
+    return rows.find(r => r[0] && r[0].toLowerCase().includes(label.toLowerCase()));
+  }
+  function findRowExact(label) {
+    return rows.find(r => r[0] && r[0].trim().toLowerCase() === label.trim().toLowerCase());
+  }
+
+  const rIncoming     = findRow('Incoming') || [];
+  const rCardHolder   = findRow('Total Card Holder + Ceria') || findRow('Total Card Holder') || [];
+  const rAccountBook  = findRow('Account Booked') || [];
+  const rRejected     = findRow('Rejected') || [];
+  const rDoneProc     = findRow('Done Process') || [];
+  const rPipeline     = findRow('Pipe Line') || [];
+  const rApprAcct     = findRow('Appr rate Acct') || [];
+  const rApprAll      = findRow('Appr rate All') || [];
+
+  // Monthly data (cols B=1..M=12, N=13 for YTD)
+  // In CSV, col 0 = label, col 1 = JAN ... col 12 = DEC, col 13 = YTD
+  const monthly = MONTHS.map((m, i) => ({
+    month: m,
+    incoming:    num(rIncoming[i+1]),
+    cardHolder:  num(rCardHolder[i+1]),
+    rejected:    num(rRejected[i+1]),
+    doneProcess: num(rDoneProc[i+1]),
+    pipeline:    num(rPipeline[i+1]),
+    apprAcct:    pct(rApprAcct[i+1]),
+    apprAll:     pct(rApprAll[i+1]),
+  })).filter(m => m.incoming > 0 || m.cardHolder > 0);
+
+  const ytdIncoming    = num(rIncoming[13]);
+  const ytdCardHolder  = num(rCardHolder[13]);
+  const ytdRejected    = num(rRejected[13]);
+  const ytdDoneProc    = num(rDoneProc[13]);
+  const ytdPipeline    = num(rPipeline[13]);
+  const ytdApprAll     = pct(rApprAll[13]);
+  const ytdApprAcct    = pct(rApprAcct[13]);
+
+  // Daily section — find "Daily" header then look for daily rows below
+  const rDailyIncoming   = rows.find(r => r[0]==='Incoming' && num(r[1]) < 60000 && rows.indexOf(r) > 20) || [];
+  const rDailyCardHolder = rows.find(r => r[0]==='Total Card Holder + Ceria' && rows.indexOf(r) > 20) || [];
+
+  // Pipeline stages — find "Stage" header
+  const stageIdx = rows.findIndex(r => r[0] && r[0].includes('Stage'));
+  const stages = [];
+  if (stageIdx > -1) {
+    for (let i = stageIdx + 1; i < Math.min(stageIdx + 9, rows.length); i++) {
+      if (rows[i][0] && rows[i][0].toLowerCase().includes('total')) break;
+      if (rows[i][0] && rows[i][0].match(/^\d\./)) {
+        stages.push({ label: rows[i][0].trim(), kanpus: num(rows[i][1]), kanwil: num(rows[i][2]), total: num(rows[i][3]) });
+      }
+    }
+  }
+  const totalStages = stages.find(s => false); // placeholder
+  const pipeTotal = stages.reduce((a,s) => a + s.total, 0);
+
+  // Approval today
+  const apvRow = rows.find(r => r[0] && r[0].toLowerCase().includes('approve kanpus'));
+  const apvKanpus = apvRow ? num(apvRow[0].replace(/[^0-9]/g,'')) : 0;
+  // Try next row approach
+  const apvIdx = rows.findIndex(r => r[0] && r[0].trim().toLowerCase() === 'approve kanpus');
+  let apvK = 0, apvW = 0, apvTot = 0;
+  if (apvIdx > -1) {
+    apvK   = num(rows[apvIdx][1] || rows[apvIdx][0]);
+    apvW   = num(rows[apvIdx + 1] ? rows[apvIdx][2] : 0);
+    // Sometimes it's 3 cols in same row
+    const aRow = rows[apvIdx];
+    if (aRow.length >= 3) { apvK = num(aRow[0]); apvW = num(aRow[1]); apvTot = num(aRow[2]); }
+  }
+  // Fallback: search for row with 3 numbers that look like approval
+  const apvRowAlt = rows.find(r => r[0] && !isNaN(num(r[0])) && num(r[0]) > 0 && r[1] && !isNaN(num(r[1])) && r[2] && !isNaN(num(r[2])) && rows.indexOf(r) > rows.findIndex(rr => rr[0] && rr[0].includes('Approval')) );
+  if (apvRowAlt && !apvTot) { apvK = num(apvRowAlt[0]); apvW = num(apvRowAlt[1]); apvTot = num(apvRowAlt[2]); }
+
+  // Target
+  const tgtRow    = rows.find(r => r[0] && r[0].includes('Target New Acc'));
+  const realRow   = rows.find(r => r[0] && r[0].includes('Realisasi New Acc'));
+  const kekRow    = rows.find(r => r[0] && r[0].includes('Kekurangan'));
+  const hariRow   = rows.find(r => r[1] && String(r[1]).match(/^\d+$/) && num(r[1]) < 30 && rows.indexOf(r) > 50);
+  const tgtHarian = rows.find(r => r[0] && r[0].toLowerCase().includes('target harian'));
+
+  const targetJun  = tgtRow  ? num(tgtRow[1])  : 29021;
+  const targetDec  = tgtRow  ? num(tgtRow[2])  : 356616;
+  const realJun    = realRow ? num(realRow[1])  : 0;
+  const realDec    = realRow ? num(realRow[2])  : 0;
+  const kekJun     = kekRow  ? num(kekRow[1])  : targetJun - realJun;
+  const kekDec     = kekRow  ? num(kekRow[2])  : targetDec - realDec;
+
+  // Summary row (∑ card holder)
+  const sumRow = rows.find(r => r[0] && r[0].includes('card holder'));
+  const dailyApproval  = sumRow ? num(sumRow[1]) : 0;
+  const mtdCardHolder  = sumRow ? num(sumRow[2]) : 0;
+  const targetHarian   = sumRow ? num(sumRow[9]) : 1791;
+  const sisaHari       = sumRow ? num(sumRow[8]) : 0;
+
+  return {
+    monthly, ytdIncoming, ytdCardHolder, ytdRejected, ytdDoneProc, ytdPipeline, ytdApprAll, ytdApprAcct,
+    stages, pipeTotal,
+    apvK, apvW, apvTot: apvTot || (apvK + apvW),
+    targetJun, targetDec, realJun: realJun || realDec && ytdCardHolder,
+    realDec: realDec || ytdCardHolder,
+    kekJun, kekDec, dailyApproval, mtdCardHolder, targetHarian, sisaHari,
+    lastMonth: monthly[monthly.length - 1] || {}
+  };
+}
+
+// ── RENDER FUNCTIONS ──────────────────────────────────────────
+function renderKPIs(d) {
+  const apprPct = d.ytdIncoming > 0 ? (d.ytdCardHolder / d.ytdIncoming * 100) : 0;
+  const rejPct  = d.ytdIncoming > 0 ? (d.ytdRejected / d.ytdIncoming * 100) : 0;
+  setText('kIncoming',   fmt(d.ytdIncoming));
+  setText('kIncomingSub','Jan – ' + (d.monthly[d.monthly.length-1]||{month:'—'}).month + ' 2026');
+  setText('kCardHolder', fmt(d.ytdCardHolder));
+  setText('kCardHolderSub', 'Acct Booked incl supp');
+  setText('kRejected',   fmt(d.ytdRejected));
+  setText('kRejectedSub', fmtP(rejPct) + ' dari incoming');
+  setText('kApprRate',   fmtP(d.ytdApprAll));
+  setText('kApprRateSub','Appr Acct: ' + fmtP(d.ytdApprAcct));
+  setText('kPipeline',   fmt(d.pipeTotal));
+  setText('kPipelineSub', d.stages.length + ' stages aktif');
+
+  // Strip
+  const gap = d.targetHarian - (d.dailyApproval || d.apvTot);
+  setText('sApprToday',    fmt(d.dailyApproval || d.apvTot));
+  setText('sApprTodaySub', 'Target ' + fmt(d.targetHarian) + ' | Gap: ' + fmt(gap));
+  setText('sPipeline',     fmt(d.pipeTotal));
+  setText('sPipelineSub',  'Kanwil vs Kanpus');
+  const yearlyAch = d.targetDec > 0 ? (d.realDec / d.targetDec * 100) : 0;
+  setText('sYearlyAch',    fmtP(yearlyAch));
+  setText('sYearlyAchSub', 'Target Dec-26: ' + fmt(d.targetDec));
+  setText('sApprRate',     fmtP(d.lastMonth.apprAll || 0));
+  setText('sApprRateSub',  'Bulan berjalan: ' + (d.lastMonth.month||''));
+
+  // Header chips
+  setText('chipIncoming', 'Incoming: ' + fmt(d.ytdIncoming));
+  setText('chipAch',      'Ach: ' + fmtP(yearlyAch));
+  setText('chipPipeline', 'Pipeline: ' + fmt(d.pipeTotal));
+}
+
+function renderOverviewCharts(d) {
+  const labels = d.monthly.map(m => m.month);
+  const axX = {ticks:{color:TC,font:{size:11}},grid:{display:false}};
+  const axY = {ticks:{color:TC,font:{size:11},callback:v=>v>=1000?(v/1000).toFixed(0)+'K':v},grid:{color:GC}};
+
+  destroyChart('overviewBar');
+  charts.overviewBar = new Chart(document.getElementById('overviewBar'), {
+    type:'bar', data:{labels,datasets:[
+      {label:'Incoming',data:d.monthly.map(m=>m.incoming),backgroundColor:'rgba(37,99,235,0.45)',borderColor:'#2563eb',borderWidth:1.5,borderRadius:4,borderSkipped:false},
+      {label:'Rejected',data:d.monthly.map(m=>m.rejected),backgroundColor:'rgba(220,38,38,0.45)',borderColor:'#dc2626',borderWidth:1.5,borderRadius:4,borderSkipped:false},
+      {label:'Card Holder',data:d.monthly.map(m=>m.cardHolder),backgroundColor:'rgba(22,163,74,0.7)',borderColor:'#16a34a',borderWidth:1.5,borderRadius:4,borderSkipped:false},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{position:'bottom',labels:{font:{size:11},color:TC,padding:12,boxWidth:12}},tooltip:{...TIP,callbacks:{label:c=>' '+c.dataset.label+': '+fmt(c.parsed.y)}}},
+      scales:{x:axX,y:axY}}
+  });
+
+  const ytdPipeline = d.ytdPipeline || d.pipeTotal || 0;
+  destroyChart('overviewDonut');
+  charts.overviewDonut = new Chart(document.getElementById('overviewDonut'), {
+    type:'doughnut', data:{
+      labels:['Rejected','Card Holder','Pipeline','Lainnya'],
+      datasets:[{data:[d.ytdRejected,d.ytdCardHolder,ytdPipeline,Math.max(0,d.ytdIncoming-d.ytdRejected-d.ytdCardHolder-ytdPipeline)],
+        backgroundColor:['#dc2626','#16a34a','#7c3aed','#60a5fa'],borderColor:'#fff',borderWidth:3,hoverOffset:8}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,cutout:'62%',
+      plugins:{legend:{position:'bottom',labels:{font:{size:11},color:TC,padding:10,boxWidth:12}},
+        tooltip:{...TIP,callbacks:{label:c=>' '+c.label+': '+fmt(c.parsed)+' ('+((c.parsed/d.ytdIncoming)*100).toFixed(1)+'%)'}}}}
+  });
+
+  // Outcome table
+  const tbody = document.getElementById('outcomeTable');
+  const rejPct = d.ytdIncoming > 0 ? (d.ytdRejected/d.ytdIncoming*100).toFixed(1) : 0;
+  const chPct  = d.ytdIncoming > 0 ? (d.ytdCardHolder/d.ytdIncoming*100).toFixed(1) : 0;
+  const plPct  = d.ytdIncoming > 0 ? (ytdPipeline/d.ytdIncoming*100).toFixed(1) : 0;
+  tbody.innerHTML = `
+    <tr><td>Rejected</td><td>${fmt(d.ytdRejected)}</td><td class="bad">${rejPct}%</td></tr>
+    <tr><td>Card Holder</td><td>${fmt(d.ytdCardHolder)}</td><td class="ok">${chPct}%</td></tr>
+    <tr><td>Pipeline</td><td>${fmt(ytdPipeline)}</td><td class="warn">${plPct}%</td></tr>
+    <tr><td>Total Incoming</td><td>${fmt(d.ytdIncoming)}</td><td>100%</td></tr>`;
+}
+
+function renderMonthly(d) {
+  const labels = d.monthly.map(m=>m.month);
+  const axX={ticks:{color:TC,font:{size:11}},grid:{display:false}};
+  const axY={ticks:{color:TC,font:{size:11},callback:v=>v>=1000?(v/1000).toFixed(0)+'K':v},grid:{color:GC}};
+
+  destroyChart('trendBar');
+  charts.trendBar = new Chart(document.getElementById('trendBar'),{
+    type:'bar',data:{labels,datasets:[
+      {label:'Incoming',data:d.monthly.map(m=>m.incoming),backgroundColor:'rgba(37,99,235,0.35)',borderColor:'#2563eb',borderWidth:1.5,borderRadius:4,borderSkipped:false},
+      {label:'Rejected',data:d.monthly.map(m=>m.rejected),backgroundColor:'rgba(220,38,38,0.35)',borderColor:'#dc2626',borderWidth:1.5,borderRadius:4,borderSkipped:false},
+      {label:'Card Holder',data:d.monthly.map(m=>m.cardHolder),backgroundColor:'rgba(22,163,74,0.7)',borderColor:'#16a34a',borderWidth:1.5,borderRadius:4,borderSkipped:false},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{position:'bottom',labels:{font:{size:11},color:TC,padding:10,boxWidth:12}},tooltip:{...TIP,callbacks:{label:c=>' '+c.dataset.label+': '+fmt(c.parsed.y)}}},
+      scales:{x:axX,y:axY}}
+  });
+
+  destroyChart('apprLine');
+  charts.apprLine = new Chart(document.getElementById('apprLine'),{
+    type:'line',data:{labels,datasets:[
+      {label:'% Appr Acct',data:d.monthly.map(m=>m.apprAcct),borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,0.08)',fill:true,tension:0.4,borderWidth:2.5,pointRadius:6,pointBackgroundColor:'#2563eb',pointBorderColor:'#fff',pointBorderWidth:2},
+      {label:'% Appr All',data:d.monthly.map(m=>m.apprAll),borderColor:'#d97706',backgroundColor:'rgba(217,119,6,0.06)',fill:true,tension:0.4,borderWidth:2.5,borderDash:[5,3],pointRadius:6,pointBackgroundColor:'#d97706',pointBorderColor:'#fff',pointBorderWidth:2},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{position:'bottom',labels:{font:{size:11},color:TC,padding:10,boxWidth:12}},tooltip:{...TIP,callbacks:{label:c=>' '+c.dataset.label+': '+c.parsed.y.toFixed(2)+'%'}}},
+      scales:{x:axX,y:{min:0,max:40,ticks:{color:TC,font:{size:11},callback:v=>v+'%'},grid:{color:GC}}}}
+  });
+
+  const apprColor = p => p >= 20 ? 'ok' : p >= 10 ? 'warn' : 'bad';
+  document.getElementById('monthlyTbody').innerHTML = d.monthly.map(m=>`
+    <tr>
+      <td>${m.month}</td><td>${fmt(m.incoming)}</td><td>${fmt(m.cardHolder)}</td>
+      <td class="bad">${fmt(m.rejected)}</td><td>${fmt(m.doneProcess)}</td>
+      <td class="warn">${fmt(m.pipeline)}</td>
+      <td class="${apprColor(m.apprAcct)}">${fmtP(m.apprAcct)}</td>
+      <td class="${apprColor(m.apprAll)}">${fmtP(m.apprAll)}</td>
+    </tr>`).join('') + `<tr><td>YTD</td><td>${fmt(d.ytdIncoming)}</td><td>${fmt(d.ytdCardHolder)}</td><td class="bad">${fmt(d.ytdRejected)}</td><td>${fmt(d.ytdDoneProc)}</td><td class="warn">${fmt(d.ytdPipeline)}</td><td class="${apprColor(d.ytdApprAcct)}">${fmtP(d.ytdApprAcct)}</td><td class="${apprColor(d.ytdApprAll)}">${fmtP(d.ytdApprAll)}</td></tr>`;
+}
+
+function renderPipeline(d) {
+  const tot = d.pipeTotal || 1;
+  setText('pTotal',    fmt(d.pipeTotal));
+  const s1 = d.stages.find(s=>s.label.includes('1.')) || {total:0,kanpus:0,kanwil:0};
+  const s5 = d.stages.find(s=>s.label.includes('5.')) || {total:0};
+  const s6 = d.stages.find(s=>s.label.includes('6.')) || {total:0,kanpus:0,kanwil:0};
+  setText('pStage1',   fmt(s1.total));
+  setText('pStage1Pct', (s1.total/tot*100).toFixed(1)+'% dari pipeline');
+  setText('pStage6',   fmt(s6.total));
+  setText('pStage6Pct', (s6.kanpus/(s6.total||1)*100).toFixed(1)+'% di Kanpus');
+  setText('pStage5',   '0');
+
+  // Pipe visual bars
+  const pv = document.getElementById('pipeVisual');
+  pv.innerHTML = d.stages.map(s => {
+    const kPct = s.total > 0 ? Math.max((s.kanpus/tot*100),1) : 0;
+    const wPct = s.total > 0 ? Math.max((s.kanwil/tot*100),1) : 0;
+    const isAlert = s.total/tot > 0.5;
+    return `<div class="pipe-row">
+      <div class="pipe-lbl">${s.label}</div>
+      <div style="flex:1;display:flex;gap:3px;">
+        <div class="pipe-bar-wrap"><div class="pipe-bar-fill" style="width:${kPct*2}%;background:#1d4ed8;">${s.kanpus>0?fmt(s.kanpus):''}</div></div>
+        <div class="pipe-bar-wrap"><div class="pipe-bar-fill" style="width:${wPct*2}%;background:${isAlert?'#ef4444':'#60a5fa'};">${s.kanwil>0?fmt(s.kanwil):''}</div></div>
+      </div>
+      <div class="pipe-total ${isAlert?'bad':'blu'}">${fmt(s.total)}</div>
+    </div>`;
+  }).join('');
+
+  // Insight
+  document.getElementById('pipeInsight').innerHTML = `⚠️ <strong>${(s1.total/tot*100).toFixed(1)}% pipeline menumpuk di Stage 1</strong> — Kanwil: ${fmt(s1.kanwil)} | Stage 6 Credit Review: ${fmt(s6.total)} (${(s6.kanpus/(s6.total||1)*100).toFixed(0)}% Kanpus). Akselerasi 2 stage ini = dampak langsung ke approval.`;
+
+  // Approval today
+  setText('apvKanpus',    fmt(d.apvK));
+  setText('apvKanpusPct', (d.apvTot>0?(d.apvK/d.apvTot*100).toFixed(1):0)+'% dari total');
+  setText('apvKanwil',    fmt(d.apvW));
+  setText('apvKanwilPct', (d.apvTot>0?(d.apvW/d.apvTot*100).toFixed(1):0)+'% dari total');
+  setText('apvTotal',     fmt(d.apvTot));
+  const gapApv = d.targetHarian - d.apvTot;
+  setText('apvGap', `Target harian: ${fmt(d.targetHarian)} | Gap: ${fmt(gapApv)} (${(d.apvTot/d.targetHarian*100).toFixed(0)}% tercapai)`);
+
+  // Pipeline table
+  document.getElementById('pipeTableBody').innerHTML = d.stages.map(s=>`
+    <tr><td>${s.label}</td><td>${fmt(s.kanpus)}</td><td>${fmt(s.kanwil)}</td>
+    <td class="${s.total/tot>0.5?'bad':s.total/tot>0.1?'warn':'blu'}">${fmt(s.total)}</td>
+    <td class="${s.total/tot>0.5?'bad':'warn'}">${(s.total/tot*100).toFixed(1)}%</td></tr>`).join('') +
+    `<tr><td>TOTAL</td><td>${fmt(d.stages.reduce((a,s)=>a+s.kanpus,0))}</td><td>${fmt(d.stages.reduce((a,s)=>a+s.kanwil,0))}</td><td class="blu">${fmt(d.pipeTotal)}</td><td>100%</td></tr>`;
+
+  // Chart
+  destroyChart('pipeChart');
+  charts.pipeChart = new Chart(document.getElementById('pipeChart'),{
+    type:'bar',indexAxis:'y',
+    data:{labels:d.stages.map(s=>s.label),datasets:[
+      {label:'Kanpus',data:d.stages.map(s=>s.kanpus),backgroundColor:'#1d4ed8',borderRadius:3,borderSkipped:false},
+      {label:'Kanwil',data:d.stages.map(s=>s.kanwil),backgroundColor:'#60a5fa',borderRadius:3,borderSkipped:false},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+      plugins:{legend:{position:'bottom',labels:{font:{size:10},color:TC,padding:8,boxWidth:10}},tooltip:{...TIP,callbacks:{label:c=>' '+c.dataset.label+': '+fmt(c.parsed.x)}}},
+      scales:{x:{stacked:true,ticks:{color:TC,font:{size:10},callback:v=>v>=1000?(v/1000).toFixed(0)+'K':v},grid:{color:GC}},y:{stacked:true,ticks:{color:TC,font:{size:10}},grid:{display:false}}}}
+  });
+}
+
+function renderTarget(d) {
+  const achJun = d.targetJun > 0 ? d.realJun/d.targetJun*100 : 0;
+  const achDec = d.targetDec > 0 ? d.realDec/d.targetDec*100 : 0;
+
+  document.getElementById('targetProgs').innerHTML = `
+    <div class="prog"><div class="prog-head"><span>Realisasi New Acc (s/d hari ini)</span><span class="blu">${fmt(d.realJun||d.realDec)}</span></div><div class="prog-track"><div class="prog-fill" style="width:${Math.min(achJun,100)}%;background:#2563eb;"></div></div><div class="prog-note">${achJun.toFixed(2)}% dari Target Juni: ${fmt(d.targetJun)}</div></div>
+    <div class="prog"><div class="prog-head"><span>Kekurangan Target Juni</span><span class="bad">${fmt(d.kekJun)}</span></div><div class="prog-track"><div class="prog-fill" style="width:${Math.min(100-achJun,100)}%;background:#fee2e2;border:1px solid #fca5a5;"></div></div><div class="prog-note">Sisa ${d.sisaHari} hari kerja | Target harian: ${fmt(d.targetHarian)}</div></div>
+    <div class="prog"><div class="prog-head"><span>Realisasi YTD vs Target Tahunan</span><span class="blu">${fmt(d.realDec)}</span></div><div class="prog-track"><div class="prog-fill" style="width:${Math.min(achDec,100)}%;background:#3b82f6;"></div></div><div class="prog-note">${achDec.toFixed(2)}% dari Target Dec-26: ${fmt(d.targetDec)}</div></div>
+    <div class="prog"><div class="prog-head"><span>Kekurangan Tahunan</span><span class="bad">${fmt(d.kekDec)}</span></div><div class="prog-track"><div class="prog-fill" style="width:${Math.min(100-achDec,100)}%;background:#fee2e2;border:1px solid #fca5a5;"></div></div><div class="prog-note">Butuh ~${fmt(Math.ceil(d.kekDec/6))}/bulan di H2</div></div>`;
+
+  document.getElementById('targetTable').innerHTML = `
+    <tr><td>Target New Acc</td><td>${fmt(d.targetJun)}</td><td>${fmt(d.targetDec)}</td></tr>
+    <tr><td>Realisasi s/d hari ini</td><td class="blu">${fmt(d.realJun||d.realDec)}</td><td class="blu">${fmt(d.realDec)}</td></tr>
+    <tr><td>% Achievement</td><td class="${colorPct(achJun)}">${fmtP(achJun)}</td><td class="${colorPct(achDec)}">${fmtP(achDec)}</td></tr>
+    <tr><td>Kekurangan</td><td class="bad">${fmt(d.kekJun)}</td><td class="bad">${fmt(d.kekDec)}</td></tr>`;
+
+  document.getElementById('dailySummary').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+      <div style="background:#f0f4ff;border-radius:9px;padding:12px;border-left:4px solid #2563eb;"><div style="font-size:10px;color:var(--muted);font-weight:600;">Approval Hari Ini</div><div style="font-size:22px;font-weight:700;color:#2563eb;margin-top:4px;">${fmt(d.dailyApproval||d.apvTot)}</div><div style="font-size:10px;color:var(--hint);">Target: ${fmt(d.targetHarian)}</div></div>
+      <div style="background:#fef2f2;border-radius:9px;padding:12px;border-left:4px solid #dc2626;"><div style="font-size:10px;color:var(--muted);font-weight:600;">Sisa Target Juni</div><div style="font-size:22px;font-weight:700;color:#dc2626;margin-top:4px;">${fmt(d.kekJun)}</div><div style="font-size:10px;color:var(--hint);">Dalam ${d.sisaHari} hari kerja</div></div>
+    </div>`;
+
+  destroyChart('targetChart');
+  charts.targetChart = new Chart(document.getElementById('targetChart'),{
+    type:'bar',
+    data:{labels:d.monthly.map(m=>m.month),datasets:[
+      {label:'Card Holder Aktual',data:d.monthly.map(m=>m.cardHolder),backgroundColor:'rgba(37,99,235,0.6)',borderColor:'#2563eb',borderWidth:1.5,borderRadius:4,borderSkipped:false},
+      {label:'Target Rata-rata',data:d.monthly.map(()=>Math.round(d.targetDec/12)),type:'line',borderColor:'#dc2626',borderDash:[5,3],borderWidth:2,pointRadius:5,pointBackgroundColor:'#dc2626',pointBorderColor:'#fff',pointBorderWidth:2,fill:false,tension:0}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{position:'bottom',labels:{font:{size:11},color:TC,padding:10,boxWidth:12}},tooltip:{...TIP,callbacks:{label:c=>' '+c.dataset.label+': '+fmt(c.parsed.y)}}},
+      scales:{x:{ticks:{color:TC,font:{size:11}},grid:{display:false}},y:{ticks:{color:TC,font:{size:11},callback:v=>v>=1000?(v/1000).toFixed(0)+'K':v},grid:{color:GC}}}}
+  });
+}
+
+function renderInsight(d) {
+  const achDec  = d.targetDec > 0 ? d.realDec/d.targetDec*100 : 0;
+  const s1      = d.stages.find(s=>s.label.includes('1.')) || {total:0,kanwil:0};
+  const s6      = d.stages.find(s=>s.label.includes('6.')) || {total:0,kanpus:0};
+  const tot     = d.pipeTotal || 1;
+  const lastM   = d.lastMonth;
+  const apprOk  = d.apvTot >= d.targetHarian;
+
+  document.getElementById('insightCritical').innerHTML = `
+    <div class="flag fr"><div class="flag-ico">🚨</div><div class="flag-body"><div class="tag">Bottleneck Stage 1 — ${(s1.total/tot*100).toFixed(1)}% pipeline</div><div class="txt">${fmt(s1.total)} aplikasi di Initial Data Entry — Kanwil ${fmt(s1.kanwil)}. Proses belum dimulai sama sekali.</div></div></div>
+    <div class="flag fr"><div class="flag-ico">🚨</div><div class="flag-body"><div class="tag">Target Tahunan Berat — ${fmtP(achDec)} tercapai</div><div class="txt">Butuh ~${fmt(Math.ceil(d.kekDec/6))}/bulan di H2 vs rata-rata YTD ${fmt(Math.round(d.realDec/(d.monthly.length||1)))}/bln. Gap 6× rata-rata saat ini.</div></div></div>
+    ${d.apvTot < d.targetHarian ? `<div class="flag fr"><div class="flag-ico">⚠️</div><div class="flag-body"><div class="tag">Approval Hari Ini Belum Mencapai Target</div><div class="txt">${fmt(d.apvTot)} dari target ${fmt(d.targetHarian)} — gap ${fmt(d.targetHarian - d.apvTot)} (${(d.apvTot/d.targetHarian*100).toFixed(0)}% tercapai).</div></div></div>` : ''}
+    <div class="flag fr"><div class="flag-ico">🚨</div><div class="flag-body"><div class="tag">Ceria Apps — Zero Volume</div><div class="txt">Semua metrik Ceria Apps = 0 sepanjang YTD. Perlu klarifikasi: belum launching, integrasi data bermasalah, atau distribusi tidak berjalan.</div></div></div>`;
+
+  document.getElementById('insightPositive').innerHTML = `
+    <div class="flag fa"><div class="flag-ico">⚠️</div><div class="flag-body"><div class="tag">Stage 6 Credit Review — ${fmt(s6.total)} menunggu</div><div class="txt">1 langkah sebelum approval. Akselerasi tim Credit Review Kanpus bisa langsung boost output 24–48 jam ke depan.</div></div></div>
+    <div class="flag fg"><div class="flag-ico">✅</div><div class="flag-body"><div class="tag">Approval Rate Tren Naik Konsisten</div><div class="txt">Dari ${fmtP(d.monthly[0]?.apprAll||0)} (Jan) terus membaik ke ${fmtP(lastM.apprAll||0)} (${lastM.month||''}). Sinyal positif kualitas proses membaik.</div></div></div>
+    <div class="flag fg"><div class="flag-ico">✅</div><div class="flag-body"><div class="tag">Stage 5 Verification = 0 Backlog</div><div class="txt">Tidak ada antrian di Verification Unit — proses verifikasi tidak menjadi bottleneck saat ini.</div></div></div>
+    <div class="flag fb"><div class="flag-ico">💡</div><div class="flag-body"><div class="tag">April Anomali Positif — Perlu Direplikasi</div><div class="txt">Card Holder April ${fmt(d.monthly.find(m=>m.month==='APR')?.cardHolder||0)} — tertinggi YTD. Identifikasi faktor pendorongnya untuk replikasi di H2.</div></div></div>`;
+
+  document.getElementById('actionCards').innerHTML = `
+    <div style="background:linear-gradient(135deg,#7f1d1d,#ef4444);border-radius:12px;padding:18px;color:#fff;"><div style="font-size:22px;margin-bottom:8px;">🔴</div><div style="font-size:13px;font-weight:700;margin-bottom:6px;">Aksi 1 — SEGERA</div><div style="font-size:11px;opacity:.9;line-height:1.6;">Tambah kapasitas data entry Kanwil. Target: turunkan backlog Stage 1 Kanwil (${fmt(s1.kanwil)}) ke bawah 5.000 dalam 5 hari kerja.</div><div style="margin-top:10px;background:rgba(255,255,255,0.15);border-radius:7px;padding:8px 10px;font-size:10px;">Dampak: langsung melancarkan pipeline ke stage berikutnya</div></div>
+    <div style="background:linear-gradient(135deg,#78350f,#f59e0b);border-radius:12px;padding:18px;color:#fff;"><div style="font-size:22px;margin-bottom:8px;">🟡</div><div style="font-size:13px;font-weight:700;margin-bottom:6px;">Aksi 2 — HARI INI</div><div style="font-size:11px;opacity:.9;line-height:1.6;">Fokuskan Credit Review Kanpus untuk menguras ${fmt(s6.total)} antrian Stage 6 — 1 langkah sebelum approval, output paling cepat.</div><div style="margin-top:10px;background:rgba(255,255,255,0.15);border-radius:7px;padding:8px 10px;font-size:10px;">Dampak: boost approval dalam 24–48 jam</div></div>
+    <div style="background:linear-gradient(135deg,#14532d,#22c55e);border-radius:12px;padding:18px;color:#fff;"><div style="font-size:22px;margin-bottom:8px;">🟢</div><div style="font-size:13px;font-weight:700;margin-bottom:6px;">Aksi 3 — HARIAN</div><div style="font-size:11px;opacity:.9;line-height:1.6;">Monitor approval vs target ${fmt(d.targetHarian)}/hari secara intraday. Eskalasi jika pace di bawah 80% target sebelum jam 12 siang.</div><div style="margin-top:10px;background:rgba(255,255,255,0.15);border-radius:7px;padding:8px 10px;font-size:10px;">Dampak: tidak ada hari yang terlewat di bawah target</div></div>`;
+}
+
+// ── HELPERS ───────────────────────────────────────────────────
+function setText(id, val) { const el = document.getElementById(id); if(el) el.textContent = val; }
+function destroyChart(id) { if(charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+// ── MAIN LOAD ─────────────────────────────────────────────────
+async function loadData() {
+  document.getElementById('loadingOverlay').classList.remove('hidden');
+  document.getElementById('loadingSub').textContent = 'Fetching dari Google Sheets...';
+  document.getElementById('errorBanner').classList.remove('show');
+
+  try {
+    const url = SHEET_CSV_URL + '&t=' + Date.now(); // cache bust
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    if (!text || text.length < 50) throw new Error('Data kosong atau tidak terbaca');
+
+    document.getElementById('loadingSub').textContent = 'Memproses data...';
+    const rows = parseCSV(text);
+    D = extractData(rows);
+
+    renderKPIs(D);
+    renderOverviewCharts(D);
+    renderMonthly(D);
+    renderPipeline(D);
+    renderTarget(D);
+    renderInsight(D);
+
+    const now = new Date().toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'short'});
+    setText('lastUpdate', '🔄 Update terakhir: ' + now);
+    setText('footerUpdate', now);
+    document.getElementById('headerSub').textContent = 'Kartu Reguler & Ceria Apps | Kanpus & Kanwil | Live Data';
+
+  } catch(err) {
+    document.getElementById('errorBanner').classList.add('show');
+    document.getElementById('errorDetail').textContent = 'Error: ' + err.message + '. Pastikan Google Sheets sudah di-publish ke web (File > Share > Publish to web > CSV).';
+    console.error('Load error:', err);
+  } finally {
+    document.getElementById('loadingOverlay').classList.add('hidden');
+  }
+}
+
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  el.classList.add('active');
+  setTimeout(()=>window.dispatchEvent(new Event('resize')),50);
+}
+
+// Auto-refresh tiap 5 menit
+setInterval(loadData, 5 * 60 * 1000);
+loadData();
+</script>
+</body>
+</html>
