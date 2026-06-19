@@ -368,7 +368,9 @@ function num(s) {
 function pct(s) {
   if (!s) return 0;
   let v = String(s).replace(/[%\s]/g,'').replace(',','.');
-  return parseFloat(v) || 0;
+  const f = parseFloat(v) || 0;
+  // If value is already in decimal form (e.g. 0.075), convert to percentage
+  return Math.abs(f) < 2 ? f * 100 : f;
 }
 
 function fmt(n) { return Math.round(n).toLocaleString('id-ID'); }
@@ -385,14 +387,15 @@ function extractData(rows) {
     return rows.find(r => r[0] && r[0].trim().toLowerCase() === label.trim().toLowerCase());
   }
 
-  const rIncoming     = findRow('Incoming') || [];
-  const rCardHolder   = findRow('Total Card Holder + Ceria') || findRow('Total Card Holder') || [];
-  const rAccountBook  = findRow('Account Booked') || [];
-  const rRejected     = findRow('Rejected') || [];
-  const rDoneProc     = findRow('Done Process') || [];
-  const rPipeline     = findRow('Pipe Line') || [];
-  const rApprAcct     = findRow('Appr rate Acct') || [];
-  const rApprAll      = findRow('Appr rate All') || [];
+  // Use exact match for rows that have similar siblings
+  const rIncoming     = findRowExact('Incoming') || findRow('Incoming') || [];
+  const rCardHolder   = findRowExact('Total Card Holder + Ceria') || findRowExact('Total Card Holder') || [];
+  const rAccountBook  = findRowExact('Account Booked') || [];
+  const rRejected     = findRowExact('Rejected') || [];
+  const rDoneProc     = findRowExact('Done Process') || [];
+  const rPipeline     = findRowExact('Pipe Line') || findRow('Pipe Line') || [];
+  const rApprAcct     = findRow('Appr Rate Acct') || findRow('Appr rate Acct') || [];
+  const rApprAll      = findRow('Appr Rate All') || findRow('Appr rate All') || [];
 
   // Monthly data (cols B=1..M=12, N=13 for YTD)
   // In CSV, col 0 = label, col 1 = JAN ... col 12 = DEC, col 13 = YTD
